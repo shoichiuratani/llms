@@ -4,7 +4,7 @@
 各種視覚処理アルゴリズムとプロセッサーを提供します。
 """
 
-from .deepgaze_processor import DeepGazeBottomUpProcessor
+from .real_deepgaze_iii import DeepGazeBottomUpProcessor
 from .sam2_processor import ObjectBasedAttention
 from .llm_processor import LLMTopDownController
 

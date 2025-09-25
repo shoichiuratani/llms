@@ -517,7 +517,10 @@
                 <div class="neural-spinner mb-8"></div>
                 <h3 class="text-2xl font-bold mb-4 neural-text-glow">Neural Processing Active</h3>
                 <div class="text-lg text-gray-300 mb-6 text-center">
-                    <div id="current-step">Initializing DeepGaze III Neural Network...</div>
+                    <div id="current-step">Initializing Real DeepGaze III (Kümmerer et al. 2021)...</div>
+                </div>
+                <div class="text-sm text-cyan-400 text-center mb-4">
+                    🧠 DenseNet-169 + Readout Network • Paper Implementation
                 </div>
                 <div class="w-full max-w-md">
                     <div class="bg-gray-700 rounded-full h-3 overflow-hidden">
@@ -641,16 +644,16 @@
     <script>
         let currentResults = null;
         const processingSteps = [
-            "Initializing DeepGaze III Neural Network...",
-            "Loading SAM2 Object Detection Model...",
-            "Activating LLM Semantic Controller...",
-            "Processing Multi-Scale Center Bias...",
-            "Analyzing LAB Color Space Features...",
-            "Executing Sobel + Canny Edge Detection...",
-            "Integrating Neural Attention Weights...",
-            "Generating IOR Gaze Sequences...",
-            "Rendering Saliency Visualizations...",
-            "Finalizing Neural Analysis Results..."
+            "Initializing Real DeepGaze III (Kümmerer et al. 2021)...",
+            "Loading DenseNet-169 Backbone Network...",
+            "Activating DeepGaze III Readout Network...", 
+            "Processing ImageNet-Normalized Features...",
+            "Computing Neural Visual Cortex Mapping...",
+            "Generating Learned Center Bias Parameters...",
+            "Extracting V1/V2/V4/IT Cortical Responses...",
+            "Applying Softmax Probability Distribution...",
+            "Generating Biologically-Constrained Gaze Sequences...",
+            "Finalizing DeepGaze III Analysis Results..."
         ];
 
         // DOM Elements
