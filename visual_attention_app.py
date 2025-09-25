@@ -45,6 +45,11 @@ app = FastAPI(title="Visual Attention Analysis", version="2.0.0")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
+@app.get("/", response_class=HTMLResponse)
+async def index_professional(request: Request):
+    """プロフェッショナル版メインページ"""
+    return templates.TemplateResponse("professional_index.html", {"request": request})
+
 # カスタムカラーマップ
 def create_custom_colormap():
     """カスタム顕著性ヒートマップカラーマップ"""
@@ -323,9 +328,9 @@ def create_analysis_dashboard(original_image: np.ndarray, saliency_map: np.ndarr
     
     return output_path
 
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    """メインページ"""
+@app.get("/basic", response_class=HTMLResponse)
+async def index_basic(request: Request):
+    """ベーシック版メインページ"""
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/analyze")
@@ -402,6 +407,6 @@ if __name__ == "__main__":
     import uvicorn
     print("=== 視覚的注意分析アプリケーション起動 ===")
     print("🎨 スタイリッシュWebアプリを開始します...")
-    print("🌐 アクセス URL: http://localhost:5000")
+    print("🌐 アクセス URL: http://localhost:6000")
     
-    uvicorn.run(app, host="0.0.0.0", port=5000)
+    uvicorn.run(app, host="0.0.0.0", port=6000)
