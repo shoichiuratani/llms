@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Attention Analyzer 2.0</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(16px) saturate(180%);
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.125);
+        }
+        
+        .glow-button {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .glow-button:hover {
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
+            transform: translateY(-2px);
+        }
+        
+        .upload-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: rgba(59, 130, 246, 0.8);
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        .result-card {
+            transform: translateY(20px);
+            opacity: 0;
+            animation: slideUp 0.6s ease-out forwards;
+        }
+        
+        @keyframes slideUp {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+        }
+        
+        .image-result {
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .floating-icon {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body class="text-white">
+    <div class="container mx-auto px-4 py-8">
+        <!-- ヘッダー -->
+        <div class="text-center mb-12">
+            <div class="flex justify-center items-center mb-4">
+                <i class="fas fa-eye text-5xl text-blue-400 floating-icon mr-4"></i>
+                <h1 class="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    Visual Attention Analyzer
+                </h1>
+            </div>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+                DeepGaze III + SAM2 + LLMによる統合視覚的注意予測システム v2.0<br>
+                <span class="text-blue-300">顕著性ヒートマップと視線パターンをリアルタイム分析</span>
+            </p>
+        </div>
+
+        <!-- メインコンテンツ -->
+        <div class="max-w-6xl mx-auto">
+            <!-- アップロードセクション -->
+            <div class="glass-effect rounded-2xl p-8 mb-8">
+                <h2 class="text-2xl font-semibold mb-6 flex items-center">
+                    <i class="fas fa-upload mr-3 text-blue-400"></i>
+                    画像アップロード
+                </h2>
+                
+                <div id="upload-zone" class="upload-zone rounded-xl p-12 text-center cursor-pointer">
+                    <i class="fas fa-cloud-upload-alt text-6xl text-blue-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold mb-2">画像をドラッグ&ドロップ</h3>
+                    <p class="text-gray-300 mb-4">または、クリックして画像を選択</p>
+                    <input type="file" id="file-input" class="hidden" accept="image/*">
+                    <button id="select-button" class="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-lg glow-button">
+                        <i class="fas fa-folder-open mr-2"></i>
+                        ファイル選択
+                    </button>
+                </div>
+            </div>
+
+            <!-- 分析進行状況 -->
+            <div id="analysis-progress" class="glass-effect rounded-2xl p-8 mb-8 hidden">
+                <div class="flex items-center justify-center">
+                    <div class="loading-spinner mr-4"></div>
+                    <div>
+                        <h3 class="text-xl font-semibold">視覚的注意分析中...</h3>
+                        <p class="text-gray-300">DeepGaze III + SAM2 + LLM統合処理実行中</p>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="bg-gray-600 rounded-full h-2">
+                        <div id="progress-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 結果セクション -->
+            <div id="results-section" class="hidden">
+                <!-- 統計情報 -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="stat-card glass-effect rounded-xl p-6 text-center">
+                        <i class="fas fa-crosshairs text-3xl text-blue-400 mb-2"></i>
+                        <div id="num-fixations" class="text-2xl font-bold">-</div>
+                        <div class="text-sm text-gray-300">注視点数</div>
+                    </div>
+                    <div class="stat-card glass-effect rounded-xl p-6 text-center">
+                        <i class="fas fa-clock text-3xl text-green-400 mb-2"></i>
+                        <div id="avg-duration" class="text-2xl font-bold">-</div>
+                        <div class="text-sm text-gray-300">平均注視時間</div>
+                    </div>
+                    <div class="stat-card glass-effect rounded-xl p-6 text-center">
+                        <i class="fas fa-chart-line text-3xl text-yellow-400 mb-2"></i>
+                        <div id="confidence" class="text-2xl font-bold">-</div>
+                        <div class="text-sm text-gray-300">信頼度</div>
+                    </div>
+                    <div class="stat-card glass-effect rounded-xl p-6 text-center">
+                        <i class="fas fa-stopwatch text-3xl text-purple-400 mb-2"></i>
+                        <div id="processing-time" class="text-2xl font-bold">-</div>
+                        <div class="text-sm text-gray-300">処理時間</div>
+                    </div>
+                </div>
+
+                <!-- 結果画像 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- オーバーレイ画像 -->
+                    <div class="result-card glass-effect rounded-2xl p-6">
+                        <h3 class="text-xl font-semibold mb-4 flex items-center">
+                            <i class="fas fa-layer-group mr-3 text-blue-400"></i>
+                            顕著性・視線オーバーレイ
+                        </h3>
+                        <div class="aspect-w-16 aspect-h-9">
+                            <img id="overlay-image" class="image-result w-full h-auto" alt="Overlay Result">
+                        </div>
+                        <p class="text-sm text-gray-300 mt-4">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            赤い円は注視点、青いラインは視線移動軌跡、背景は顕著性ヒートマップ
+                        </p>
+                    </div>
+
+                    <!-- ダッシュボード画像 -->
+                    <div class="result-card glass-effect rounded-2xl p-6">
+                        <h3 class="text-xl font-semibold mb-4 flex items-center">
+                            <i class="fas fa-chart-area mr-3 text-green-400"></i>
+                            分析ダッシュボード
+                        </h3>
+                        <div class="aspect-w-16 aspect-h-9">
+                            <img id="dashboard-image" class="image-result w-full h-auto" alt="Dashboard Result">
+                        </div>
+                        <p class="text-sm text-gray-300 mt-4">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            オリジナル画像、顕著性マップ、視線パターン、統計グラフの総合分析
+                        </p>
+                    </div>
+                </div>
+
+                <!-- ダウンロードセクション -->
+                <div class="glass-effect rounded-2xl p-6 mt-8 text-center">
+                    <h3 class="text-xl font-semibold mb-4">
+                        <i class="fas fa-download mr-3 text-purple-400"></i>
+                        結果のダウンロード
+                    </h3>
+                    <div class="flex flex-wrap justify-center gap-4">
+                        <button id="download-overlay" class="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-lg glow-button">
+                            <i class="fas fa-image mr-2"></i>オーバーレイ画像
+                        </button>
+                        <button id="download-dashboard" class="bg-green-500 hover:bg-green-600 px-6 py-3 rounded-lg glow-button">
+                            <i class="fas fa-chart-bar mr-2"></i>ダッシュボード画像
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentResults = null;
+
+        // DOM要素取得
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        const selectButton = document.getElementById('select-button');
+        const analysisProgress = document.getElementById('analysis-progress');
+        const progressBar = document.getElementById('progress-bar');
+        const resultsSection = document.getElementById('results-section');
+
+        // ファイル選択イベント
+        selectButton.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        // ドラッグ&ドロップ
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // ファイル処理
+        async function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('画像ファイルを選択してください。');
+                return;
+            }
+
+            // プログレスバー開始
+            showProgress();
+            
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentResults = result;
+                    displayResults(result);
+                } else {
+                    alert('分析に失敗しました: ' + (result.error || '不明なエラー'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('分析中にエラーが発生しました: ' + error.message);
+            } finally {
+                hideProgress();
+            }
+        }
+
+        // プログレスバー表示
+        function showProgress() {
+            analysisProgress.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 95) {
+                    progress = 95;
+                    clearInterval(interval);
+                }
+                progressBar.style.width = progress + '%';
+            }, 200);
+        }
+
+        // プログレスバー非表示
+        function hideProgress() {
+            progressBar.style.width = '100%';
+            setTimeout(() => {
+                analysisProgress.classList.add('hidden');
+            }, 500);
+        }
+
+        // 結果表示
+        function displayResults(result) {
+            // 統計更新
+            document.getElementById('num-fixations').textContent = result.statistics.num_fixations;
+            document.getElementById('avg-duration').textContent = Math.round(result.statistics.avg_fixation_duration_ms) + 'ms';
+            document.getElementById('confidence').textContent = (result.statistics.avg_confidence * 100).toFixed(1) + '%';
+            document.getElementById('processing-time').textContent = Math.round(result.processing_time_ms) + 'ms';
+
+            // 画像設定
+            document.getElementById('overlay-image').src = result.overlay_image;
+            document.getElementById('dashboard-image').src = result.dashboard_image;
+
+            // 結果セクション表示
+            resultsSection.classList.remove('hidden');
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // ダウンロード機能
+        document.getElementById('download-overlay').addEventListener('click', () => {
+            if (currentResults) downloadImage(currentResults.overlay_image, 'attention_overlay.png');
+        });
+
+        document.getElementById('download-dashboard').addEventListener('click', () => {
+            if (currentResults) downloadImage(currentResults.dashboard_image, 'attention_dashboard.png');
+        });
+
+        function downloadImage(url, filename) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
