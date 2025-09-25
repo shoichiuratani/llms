@@ -1,0 +1,145 @@
+# 統合視覚的注意システム設定ファイル
+
+# システム全体設定
+system:
+  version: "2.0"
+  debug: false
+  max_image_size: [1920, 1080]
+  default_output_resolution: "high"  # high, medium, low
+
+# DeepGaze III設定
+deepgaze:
+  model_name: "deepgaze_III"
+  device: "auto"  # auto, cpu, cuda
+  batch_size: 1
+  center_bias_enabled: true
+  temporal_dynamics_enabled: true
+  
+  # 神経科学的特徴マッピング
+  neural_mapping:
+    v1_v2_layers: ["conv1", "conv2"]
+    v4_layers: ["conv3", "conv4"]  
+    it_layers: ["conv5", "fc"]
+  
+  # 顕著性予測パラメータ
+  saliency:
+    gaussian_sigma: 16
+    center_bias_weight: 0.1
+    temporal_decay: 0.95
+
+# SAM2設定
+sam2:
+  model_checkpoint: "sam2_hiera_large.pt"
+  model_cfg: "sam2_hiera_l.yaml"
+  device: "auto"
+  
+  # セグメンテーションパラメータ
+  segmentation:
+    points_per_side: 32
+    pred_iou_thresh: 0.88
+    stability_score_thresh: 0.95
+    crop_n_layers: 0
+    crop_n_points_downscale_factor: 1
+    min_mask_region_area: 0
+  
+  # 物体重要度計算
+  object_importance:
+    area_weight: 0.3
+    contrast_weight: 0.4  
+    eccentricity_weight: 0.3
+
+# LLM設定
+llm:
+  provider: "openai"  # openai, anthropic, local
+  model_name: "gpt-4-vision-preview"
+  api_key_env: "OPENAI_API_KEY"
+  max_tokens: 4096
+  temperature: 0.1
+  
+  # プロンプト設定
+  prompts:
+    scene_analysis: |
+      以下の観点で画像を分析してください：
+      1. 主要な要素とその重要度（1-10のスケール）
+      2. 要素間の関係性と階層構造
+      3. 文脈的な意味と背景情報
+      4. 注目すべき順序と視線誘導要素
+      5. 感情的・美的な特徴
+    
+    task_specific_bias: |
+      指定されたタスク「{task}」に基づいて、
+      注意の重み付けを調整してください。
+      タスクに関連する要素の重要度を高め、
+      無関係な要素の重要度を下げてください。
+
+# 統合アルゴリズム設定  
+integration:
+  # モダリティ間の重み
+  modality_weights:
+    deepgaze_base: 0.45
+    sam2_object: 0.25
+    llm_semantic: 0.30
+  
+  # 時間依存重み（ミリ秒単位）
+  temporal_weights:
+    bottom_up_dominance_duration: 150  # 最初150msはボトムアップ優位
+    top_down_emergence_time: 200       # 200ms後からトップダウン開始
+    full_integration_time: 500         # 500ms後に完全統合
+  
+  # 生物学的制約
+  biological_constraints:
+    center_bias_strength: 0.1
+    ior_decay_rate: 0.02  # Inhibition of Return
+    max_saccade_distance: 200  # ピクセル単位
+
+# 注視点シーケンス生成設定
+fixation_sequence:
+  default_duration_ms: 5000
+  min_fixation_duration_ms: 100
+  max_fixation_duration_ms: 800
+  saccade_velocity_deg_per_sec: 300
+  
+  # 確率的選択パラメータ
+  selection:
+    temperature: 0.8
+    top_k_candidates: 5
+  
+  # 情報理論的パラメータ  
+  information_theory:
+    surprise_weight: 0.6
+    entropy_weight: 0.4
+
+# API設定
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 1
+  reload: false
+  
+  # レート制限
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+    
+  # キャッシュ設定
+  cache:
+    enabled: true
+    ttl_seconds: 3600
+    max_size_mb: 512
+
+# ロギング設定
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/system.log"
+  
+# パフォーマンス設定
+performance:
+  multiprocessing: true
+  num_workers: 4
+  gpu_memory_fraction: 0.8
+  
+  # プロファイリング
+  profiling:
+    enabled: false
+    output_dir: "logs/profiling"
